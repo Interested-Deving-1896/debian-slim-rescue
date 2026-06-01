@@ -1,0 +1,31 @@
+# /etc/ramboot.conf — ramboot configuration
+#
+# This file is sourced by the ramboot dracut module during early boot.
+# After changes, regenerate the initramfs:
+#   Debian/Ubuntu:  update-initramfs -u
+#   Fedora/RHEL:    dracut -f
+#   Arch:           mkinitcpio -P  (if using dracut on Arch)
+
+# Enable ramboot:
+#   auto  — prompt if RAM >= RAM_MIN; auto-enable if RAM >= RAM_PREF
+#   yes   — always enable (skip prompt)
+#   no    — always disable
+RAMBOOT_ENABLE=auto
+
+# Default answer for the boot prompt (y or n)
+RAMBOOT_DEFAULT=n
+
+# Prompt timeout in seconds (3–32)
+RAMBOOT_TIMEOUT=8
+
+# Minimum available RAM required to attempt ramboot (MiB)
+RAMBOOT_RAM_MIN=750
+
+# Available RAM at which ramboot is auto-enabled without prompting (MiB)
+RAMBOOT_RAM_PREF=4000
+
+# zram device size in MiB (0 = auto: half of available RAM)
+RAMBOOT_ZRAM_SIZE=0
+
+# zram compression algorithm: lz4 (fast), lzo, zstd (best ratio)
+RAMBOOT_ALGO=lz4

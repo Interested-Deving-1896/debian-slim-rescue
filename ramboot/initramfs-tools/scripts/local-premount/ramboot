@@ -1,0 +1,63 @@
+#!/bin/sh
+# /etc/initramfs-tools/scripts/local-premount/ramboot
+# initramfs-tools local-premount script — runs before root is mounted
+#
+# Install: copy to /etc/initramfs-tools/scripts/local-premount/ramboot (chmod +x)
+
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+case "$1" in prereqs) prereqs; exit 0 ;; esac
+
+. /scripts/functions
+. /lib/ramboot/ramboot-lib.sh
+. /etc/ramboot.conf
+
+: "${RAMBOOT_ENABLE:=auto}"
+: "${RAMBOOT_DEFAULT:=n}"
+: "${RAMBOOT_TIMEOUT:=8}"
+: "${RAMBOOT_RAM_MIN:=750}"
+: "${RAMBOOT_RAM_PREF:=4000}"
+: "${RAMBOOT_ZRAM_SIZE:=0}"
+: "${RAMBOOT_ALGO:=lz4}"
+
+[ "$RAMBOOT_ENABLE" = "no" ] && exit 0
+
+avail=$(rb_avail_ram_mib)
+total=$(rb_total_ram_mib)
+rb_info "RAM: ${avail} MiB available / ${total} MiB total"
+
+if [ "$avail" -lt "$RAMBOOT_RAM_MIN" ]; then
+    rb_warn "Insufficient RAM (${avail} < ${RAMBOOT_RAM_MIN} MiB) — skipping ramboot"
+    exit 0
+fi
+
+[ "$RAMBOOT_ZRAM_SIZE" -gt 0 ] 2>/dev/null && \
+    zram_size="$RAMBOOT_ZRAM_SIZE" || \
+    zram_size=$(( avail / 2 ))
+
+if [ "$RAMBOOT_ENABLE" = "yes" ] || \
+   ( [ "$RAMBOOT_ENABLE" = "auto" ] && [ "$avail" -ge "$RAMBOOT_RAM_PREF" ] ); then
+    do_ramboot=0
+elif [ "$RAMBOOT_ENABLE" = "auto" ]; then
+    rb_prompt "Load root to RAM?" "$RAMBOOT_DEFAULT" "$RAMBOOT_TIMEOUT"
+    do_ramboot=$?
+else
+    exit 0
+fi
+
+[ "$do_ramboot" -ne 0 ] && exit 0
+
+rb_info "Allocating zram (${zram_size} MiB, ${RAMBOOT_ALGO})..."
+zram_dev=$(rb_create_zram "$zram_size" "$RAMBOOT_ALGO") || exit 0
+
+rb_copy_root "$ROOT" "$zram_dev" || {
+    rb_error "ramboot copy failed — booting from disk"
+    zramctl --reset "$zram_dev" 2>/dev/null
+    exit 0
+}
+
+# Override ROOT so initramfs mounts zram instead of disk
+ROOT="$zram_dev"
+export ROOT
+echo "$zram_dev" > /run/ramboot-device
+rb_info "ramboot active — root redirected to $zram_dev"

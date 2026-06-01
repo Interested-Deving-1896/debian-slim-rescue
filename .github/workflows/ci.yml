@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Lint all shell scripts
+        run: make lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run unit tests
+        run: |
+          bash tests/test-common.sh
+          bash tests/test-ramboot-lib.sh
+
+  validate-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required files exist
+        run: |
+          for f in \
+            dsr \
+            Makefile \
+            shared/lib/common.sh \
+            shared/config/packages.conf \
+            minbian/main.sh \
+            minidebian/main.sh \
+            ramboot/dracut/modules.d/90ramboot/module-setup.sh \
+            ramboot/dracut/modules.d/90ramboot/ramboot.sh \
+            ramboot/dracut/modules.d/90ramboot/ramboot-lib.sh \
+            ramboot/initramfs-tools/hooks/ramboot \
+            ramboot/initramfs-tools/scripts/local-premount/ramboot; do
+            [ -f "$f" ] || { echo "MISSING: $f"; exit 1; }
+            echo "OK: $f"
+          done
+
+      - name: Check dsr is executable
+        run: bash -n dsr && echo "dsr syntax OK"
+
+      - name: Check shared lib syntax
+        run: bash -n shared/lib/common.sh && echo "common.sh syntax OK"

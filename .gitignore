@@ -1,0 +1,21 @@
+# Build outputs
+w0/ w1/ w2/
+*.img
+*.iso
+initrd.img-*
+vmlinuz-*
+
+# Temp files
+*.tmp
+*.bak
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.iml

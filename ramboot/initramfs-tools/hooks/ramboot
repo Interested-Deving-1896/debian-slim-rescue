@@ -1,0 +1,42 @@
+#!/bin/sh
+# /etc/initramfs-tools/hooks/ramboot
+# initramfs-tools hook — installs ramboot binaries and config into the initramfs
+#
+# Install: copy this file to /etc/initramfs-tools/hooks/ramboot (chmod +x)
+# Then run: update-initramfs -u
+
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+
+case "$1" in
+    prereqs) prereqs; exit 0 ;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+
+# Required binaries
+copy_exec /usr/bin/zramctl
+copy_exec /sbin/mkfs.ext4
+copy_exec /bin/cp
+copy_exec /usr/bin/awk
+copy_exec /bin/grep
+copy_exec /bin/sleep
+
+# Kernel modules
+manual_add_modules zram
+manual_add_modules ext4
+manual_add_modules lz4
+manual_add_modules lzo
+manual_add_modules zstd
+
+# ramboot scripts
+mkdir -p "${DESTDIR}/lib/ramboot"
+cp /usr/lib/ramboot/ramboot-lib.sh "${DESTDIR}/lib/ramboot/"
+cp /usr/lib/ramboot/ramboot-init.sh "${DESTDIR}/lib/ramboot/"
+
+# Config
+if [ -f /etc/ramboot.conf ]; then
+    cp /etc/ramboot.conf "${DESTDIR}/etc/ramboot.conf"
+else
+    cp /usr/lib/ramboot/ramboot.conf.default "${DESTDIR}/etc/ramboot.conf"
+fi

@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# dsr — debian-slim-rescue unified entry point
+#
+# Usage:
+#   dsr setup      — run minbian post-install desktop setup
+#   dsr rescue     — build a minidebian rescue initramfs
+#   dsr ramboot    — install and configure the ramboot module
+#   dsr status     — show system info (arch, RAM, distro, ramboot state)
+#   dsr help       — show this help
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=shared/lib/common.sh
+source "${SCRIPT_DIR}/shared/lib/common.sh"
+
+VERSION="0.1.0"
+
+usage() {
+  dsr_banner
+  cat << EOF
+  Version: ${VERSION}
+
+  Commands:
+    setup     Post-install minimal Debian desktop setup (minbian)
+    rescue    Build a RAM-based rescue initramfs (minidebian)
+    ramboot   Install the ramboot dracut/initramfs-tools module
+    status    Show system info and ramboot state
+    help      Show this help
+
+  Options:
+    --dry-run   Print what would be done without making changes
+    --version   Print version and exit
+
+EOF
+}
+
+cmd_status() {
+  dsr_banner
+  local arch distro codename ram_total ram_avail
+  arch=$(dsr_detect_arch)
+  distro=$(dsr_detect_distro)
+  codename=$(dsr_debian_codename)
+  ram_total=$(dsr_total_ram_mib)
+  ram_avail=$(dsr_avail_ram_mib)
+
+  echo "  Architecture : ${arch} ($(uname -m))"
+  echo "  Distro       : ${distro} ${codename}"
+  echo "  Kernel       : $(uname -r)"
+  echo "  RAM total    : ${ram_total} MiB"
+  echo "  RAM available: ${ram_avail} MiB"
+
+  if [[ -f /run/ramboot-device ]]; then
+    echo "  Ramboot      : ACTIVE ($(cat /run/ramboot-device))"
+  elif command -v zramctl &>/dev/null; then
+    echo "  Ramboot      : installed (not active)"
+  else
+    echo "  Ramboot      : not installed"
+  fi
+  echo ""
+}
+
+cmd_setup() {
+  dsr_require_sudo
+  dsr_info "Starting minbian desktop setup..."
+  exec bash "${SCRIPT_DIR}/minbian/main.sh" "$@"
+}
+
+cmd_rescue() {
+  dsr_require_root
+  dsr_info "Building minidebian rescue initramfs..."
+  exec bash "${SCRIPT_DIR}/minidebian/main.sh" "$@"
+}
+
+cmd_ramboot() {
+  dsr_require_root
+  local initramfs_tool=""
+
+  # Detect which initramfs tool is available
+  if command -v dracut &>/dev/null; then
+    initramfs_tool="dracut"
+  elif command -v update-initramfs &>/dev/null; then
+    initramfs_tool="initramfs-tools"
+  else
+    dsr_die "Neither dracut nor initramfs-tools found. Install one first."
+  fi
+
+  dsr_info "Installing ramboot module (${initramfs_tool})..."
+
+  if [[ "$initramfs_tool" == "dracut" ]]; then
+    local module_dir="/usr/lib/dracut/modules.d/90ramboot"
+    mkdir -p "$module_dir"
+    cp -r "${SCRIPT_DIR}/ramboot/dracut/modules.d/90ramboot/." "$module_dir/"
+    chmod +x "${module_dir}/ramboot.sh" "${module_dir}/ramboot-cleanup.sh"
+    [[ ! -f /etc/ramboot.conf ]] && \
+      cp "${module_dir}/ramboot.conf.default" /etc/ramboot.conf
+    dsr_ok "ramboot module installed to ${module_dir}"
+    dsr_info "Regenerating initramfs with dracut..."
+    dracut -f --add ramboot
+  else
+    # initramfs-tools
+    local lib_dir="/usr/lib/ramboot"
+    mkdir -p "$lib_dir"
+    cp "${SCRIPT_DIR}/ramboot/dracut/modules.d/90ramboot/ramboot-lib.sh" "$lib_dir/"
+    cp "${SCRIPT_DIR}/ramboot/dracut/modules.d/90ramboot/ramboot.conf.default" "$lib_dir/"
+    cp "${SCRIPT_DIR}/ramboot/initramfs-tools/hooks/ramboot" \
+       /etc/initramfs-tools/hooks/ramboot
+    chmod +x /etc/initramfs-tools/hooks/ramboot
+    mkdir -p /etc/initramfs-tools/scripts/local-premount
+    cp "${SCRIPT_DIR}/ramboot/initramfs-tools/scripts/local-premount/ramboot" \
+       /etc/initramfs-tools/scripts/local-premount/ramboot
+    chmod +x /etc/initramfs-tools/scripts/local-premount/ramboot
+    [[ ! -f /etc/ramboot.conf ]] && \
+      cp "$lib_dir/ramboot.conf.default" /etc/ramboot.conf
+    dsr_ok "ramboot hooks installed"
+    dsr_info "Regenerating initramfs with update-initramfs..."
+    update-initramfs -u
+  fi
+
+  dsr_ok "ramboot installed. Edit /etc/ramboot.conf to configure."
+}
+
+# ── Dispatch ──────────────────────────────────────────────────────────────────
+
+DRY_RUN=false
+COMMAND=""
+
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run)  DRY_RUN=true ;;
+    --version)  echo "dsr ${VERSION}"; exit 0 ;;
+    help|--help|-h) usage; exit 0 ;;
+    setup|rescue|ramboot|status) COMMAND="$arg" ;;
+    *) dsr_warn "Unknown argument: $arg" ;;
+  esac
+done
+
+export DRY_RUN
+
+case "${COMMAND:-}" in
+  setup)   cmd_setup   ;;
+  rescue)  cmd_rescue  ;;
+  ramboot) cmd_ramboot ;;
+  status)  cmd_status  ;;
+  "")      usage; exit 0 ;;
+esac
