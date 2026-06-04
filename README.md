@@ -1,112 +1,75 @@
+[update-readmes]   Mode: rewrite — migrating to template structure...
 # debian-slim-rescue
 
-A unified toolkit for minimal Debian systems — slim desktop setup, RAM-based rescue initramfs, and distro-agnostic RAM-root boot.
+[![Built with Ona](https://ona.com/build-with-ona.svg)](https://app.ona.com/#https://github.com/Interested-Deving-1896/debian-slim-rescue)
 
-Merges three upstream projects into a single coherent tool:
+<!-- AI:start:what-it-does -->
+_Description pending._
+<!-- AI:end:what-it-does -->
 
-| Component | Origin | Purpose |
-|---|---|---|
-| `minbian/` | [alexmolinaws/minbian](https://github.com/alexmolinaws/minbian) | Post-install minimal Debian desktop setup |
-| `minidebian/` | [h-yamamo/minidebian](https://github.com/h-yamamo/minidebian) | RAM-based rescue initramfs (~50 MB) |
-| `ramboot/` | [arcmags/ramroot](https://github.com/arcmags/ramroot) (ported) | Load root filesystem to zram at boot |
+## Architecture
 
-## Quick start
+<!-- AI:start:architecture -->
+_Architecture documentation pending._
+<!-- AI:end:architecture -->
 
-```bash
-# Post-install desktop setup (run as normal user with sudo)
-./dsr setup
+## Install
 
-# Build a rescue initramfs (run as root)
-sudo ./dsr rescue
-
-# Install the ramboot module (run as root)
-sudo ./dsr ramboot
-
-# Show system info
-./dsr status
-```
-
-## Components
-
-### minbian — slim desktop setup
-
-Interactive post-install script for a minimal Debian desktop. Detects architecture (x86_64, i386, arm64, armhf, riscv64), RAM, and user preferences, then installs and configures a lightweight desktop environment.
+<!-- Add installation instructions here. This section is yours — the AI will not modify it. -->
 
 ```bash
-./dsr setup
-# or directly:
-bash minbian/main.sh
+git clone https://github.com/Interested-Deving-1896/debian-slim-rescue.git
+cd debian-slim-rescue
 ```
 
-### minidebian — rescue initramfs
+## Usage
 
-Builds a ~50 MB initramfs containing a complete rescue environment. Boots entirely from RAM — no disk required after boot.
+<!-- Add usage examples here. This section is yours — the AI will not modify it. -->
 
-```bash
-sudo ./dsr rescue
-# or directly:
-sudo bash minidebian/main.sh
+## Configuration
+
+<!-- Document configuration options here. This section is yours — the AI will not modify it. -->
+
+## CI
+
+<!-- AI:start:ci -->
+_CI documentation pending._
+<!-- AI:end:ci -->
+
+## Mirror chain
+
+<!-- AI:start:mirror-chain -->
+This repo is maintained in [`Interested-Deving-1896/debian-slim-rescue`](https://github.com/Interested-Deving-1896/debian-slim-rescue) and mirrored through:
+
+```
+Interested-Deving-1896/debian-slim-rescue  ──►  OpenOS-Project-OSP/debian-slim-rescue  ──►  OpenOS-Project-Ecosystem-OOC/debian-slim-rescue
 ```
 
-Supports: amd64, i386, arm64 (with appropriate kernel).
+Changes flow downstream automatically via the hourly mirror chain in
+[`fork-sync-all`](https://github.com/Interested-Deving-1896/fork-sync-all).
+Direct commits to OSP or OOC are detected and opened as PRs back to `Interested-Deving-1896`.
+<!-- AI:end:mirror-chain -->
 
-### ramboot — RAM-root boot module
+## Contributors
 
-Loads the root filesystem into a zram device during early boot. Works with both **dracut** (Fedora, openSUSE, Debian 12+, Arch) and **initramfs-tools** (Debian/Ubuntu).
+<!-- AI:start:contributors -->
+_Contributors pending._
+<!-- AI:end:contributors -->
 
-```bash
-sudo ./dsr ramboot
-```
+## Origins
 
-Configure via `/etc/ramboot.conf`:
+<!-- AI:start:origins -->
+_Original project — no upstream fork._
+<!-- AI:end:origins -->
 
-```bash
-RAMBOOT_ENABLE=auto    # auto | yes | no
-RAMBOOT_DEFAULT=n      # default prompt answer
-RAMBOOT_RAM_MIN=750    # minimum RAM required (MiB)
-RAMBOOT_RAM_PREF=4000  # auto-enable threshold (MiB)
-RAMBOOT_ALGO=lz4       # compression: lz4 | lzo | zstd
-```
+## Resources
 
-After configuration changes, regenerate the initramfs:
-```bash
-# dracut
-dracut -f --add ramboot
-
-# initramfs-tools
-update-initramfs -u
-```
-
-## Architecture support
-
-| Arch | minbian | minidebian | ramboot |
-|---|---|---|---|
-| amd64 (x86_64) | ✅ | ✅ | ✅ |
-| i386 | ✅ | ✅ | ✅ |
-| arm64 (aarch64) | ✅ | ✅ | ✅ |
-| armhf | ✅ | — | ✅ |
-| riscv64 | ✅ | — | ✅ |
-
-## Requirements
-
-- Debian 11 (bullseye) or later, Ubuntu 20.04+, or any Debian derivative
-- `minbian`: user in `sudo` group
-- `minidebian`: root, kernel with initramfs, `debootstrap`, `zstd`
-- `ramboot`: root, `dracut` or `initramfs-tools`, kernel with `zram` + `ext4`
-
-## Shared library
-
-`shared/lib/common.sh` provides utilities used by all components:
-- Architecture and distro detection
-- RAM detection
-- Logging helpers
-- apt wrappers
+<!-- AI:start:resources -->
+_No additional resource files found._
+<!-- AI:end:resources -->
 
 ## License
 
-GPL-3.0 — see [LICENSE](LICENSE).
-
-Upstream licenses:
-- minbian: GPL-3.0 ([alexmolinaws/minbian](https://github.com/alexmolinaws/minbian))
-- minidebian: see [minidebian/README.md](minidebian/README.md)
-- ramroot: GPL-3.0 ([arcmags/ramroot](https://github.com/arcmags/ramroot))
+<!-- AI:start:license -->
+[GPL-3.0](https://github.com/Interested-Deving-1896/debian-slim-rescue/blob/main/LICENSE) © 2026 [Interested-Deving-1896](https://github.com/Interested-Deving-1896)
+<!-- AI:end:license -->
